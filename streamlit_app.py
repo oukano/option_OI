@@ -12,10 +12,22 @@ def calculate_gamma(S, K, T, r, sigma):
     return gamma
 
 # Streamlit app
-st.title("NVDA 0DTE Options Analysis")
+st.title("Options Analysis Tool")
 
-# Step 1: Fetch NVDA option chain for today
-ticker = 'NVDA'
+# Dropdown for ticker selection
+ticker_options = {
+    "QQQ": "Nasdaq",
+    "GLD": "XAU",
+    "SPY": "S&P",
+    "NVDA": "NVIDIA"  # Added NVDA to the list for your original request
+}
+
+# Ticker selection
+selected_ticker = st.selectbox("Select a Ticker", list(ticker_options.keys()))
+
+# Fetch selected ticker's option chain
+ticker = selected_ticker
+st.subheader(f"Analyzing Options for {ticker_options[selected_ticker]} ({selected_ticker})")
 nvda = yf.Ticker(ticker)
 
 # Get current stock price
@@ -26,11 +38,11 @@ options = nvda.options
 expiry_date = options[0]
 option_chain = nvda.option_chain(expiry_date)
 
-# Step 2: Get calls and puts
+# Get calls and puts
 calls = option_chain.calls
 puts = option_chain.puts
 
-# Step 3: Calculate gamma for each option using the Black-Scholes formula
+# Calculate gamma for each option using the Black-Scholes formula
 risk_free_rate = 0.05  # 5% risk-free rate
 time_to_expiration = 1 / 365  # 0DTE means the expiration is in one day
 
@@ -55,7 +67,7 @@ puts['gamma_manual'] = puts.apply(
     ), axis=1
 )
 
-# Step 4: Aggregate open interest by strike
+# Aggregate open interest by strike
 calls_oi = calls.groupby('strike').agg({'openInterest': 'sum', 'gamma_manual': 'sum'}).reset_index()
 calls_oi.rename(columns={'openInterest': 'calls_openInterest', 'gamma_manual': 'calls_gamma'}, inplace=True)
 
@@ -65,19 +77,19 @@ puts_oi.rename(columns={'openInterest': 'puts_openInterest', 'gamma_manual': 'pu
 # Merge calls and puts open interest and gamma
 combined_oi = pd.merge(calls_oi, puts_oi, on='strike', how='outer').fillna(0)
 
-# Step 5: Calculate total open interest
+# Calculate total open interest
 combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combined_oi['puts_openInterest']
 
-# Step 6: Find the 5 strikes with the highest open interest
+# Find the 5 strikes with the highest open interest
 top_strikes = combined_oi.nlargest(5, 'total_open_interest')
 
-# Step 7: Fetch NVDA stock price data for the past 1 month and prepare for plotting
+# Fetch stock price data for the past 1 month and prepare for plotting
 nvda_price = nvda.history(period="1mo")
 
 # Plotting
 fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(nvda_price.index, nvda_price['Close'], label="NVDA Close Price", color="blue")
-ax.set_title(f'NVDA Stock Price with Top 5 Open Interest Strikes (Expiry: {expiry_date})')
+ax.plot(nvda_price.index, nvda_price['Close'], label=f"{ticker} Close Price", color="blue")
+ax.set_title(f'{ticker} Stock Price with Top 5 Open Interest Strikes (Expiry: {expiry_date})')
 ax.set_xlabel("Date")
 ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
