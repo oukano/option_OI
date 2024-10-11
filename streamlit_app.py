@@ -107,8 +107,12 @@ display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage',
 display_data['Total Gamma'] = display_data['calls_gamma'] + display_data['puts_gamma']
 display_data = display_data[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'Total Gamma']]
 
-# Display the DataFrame as a Streamlit table
-st.table(display_data.style.format({
+# Highlight the row with the closest price to the current price
+def highlight_closest_price(row):
+    return ['background-color: yellow' if abs(row['strike'] - current_price) == abs(display_data['strike'] - current_price).min() else '' for _ in row]
+
+# Display the DataFrame as a Streamlit table with highlighting
+st.table(display_data.style.apply(highlight_closest_price, axis=1).format({
     'strike': "{:.1f}",
     'total_open_interest': "{:.1f}",
     'calls_percentage': "{:.2f}%",
