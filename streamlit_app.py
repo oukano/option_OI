@@ -16,9 +16,10 @@ st.title("Options Analysis Tool")
 
 # Dropdown for ticker selection
 ticker_options = {
+    "NVDA": "NVIDIA",
     "QQQ": "Nasdaq",
-    "SPY": "S&P",
-    "NVDA": "NVIDIA"  # Added NVDA to the list for your original request
+    "SPY": "S&P"
+     # Added NVDA to the list for your original request
 }
 
 # Ticker selection
