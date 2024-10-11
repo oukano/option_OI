@@ -84,9 +84,11 @@ ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
 ax.yaxis.set_label_position("right")  # Move y-axis label to the right
 
-# Mark the top 3 strike prices on the chart
+# Mark the top 3 strike prices on the chart and label them
 for i, row in closest_strikes.iterrows():
-    ax.axhline(y=row['strike'], color='red', linestyle='--', label=f"Strike {row['strike']} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
+    strike_price = row['strike']
+    ax.axhline(y=strike_price, color='red', linestyle='--', label=f"Strike {strike_price} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
+    ax.text(nvda_price.index[-1], strike_price, f"{strike_price}", color='red', verticalalignment='bottom', fontsize=10)
 
 # Add legend to the plot
 ax.legend()
