@@ -65,11 +65,14 @@ puts_oi.rename(columns={'openInterest': 'puts_openInterest', 'gamma_manual': 'pu
 # Merge calls and puts open interest and gamma
 combined_oi = pd.merge(calls_oi, puts_oi, on='strike', how='outer').fillna(0)
 
-# Step 5: Calculate total open interest and get top 3 strikes with highest OI
+# Step 5: Calculate total open interest
 combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combined_oi['puts_openInterest']
-top_3_strikes = combined_oi.nlargest(3, 'total_open_interest')[['strike', 'calls_openInterest', 'puts_openInterest', 'calls_gamma', 'puts_gamma']]
 
-# Step 6: Fetch NVDA stock price data for the past 1 month and prepare for plotting
+# Step 6: Find the 3 strikes closest to the current price
+combined_oi['distance'] = (combined_oi['strike'] - current_price).abs()
+closest_strikes = combined_oi.nsmallest(3, 'distance')
+
+# Step 7: Fetch NVDA stock price data for the past 1 month and prepare for plotting
 nvda_price = nvda.history(period="1mo")
 
 # Plotting
@@ -82,7 +85,7 @@ ax.yaxis.tick_right()  # Move y-axis ticks to the right
 ax.yaxis.set_label_position("right")  # Move y-axis label to the right
 
 # Mark the top 3 strike prices on the chart
-for i, row in top_3_strikes.iterrows():
+for i, row in closest_strikes.iterrows():
     ax.axhline(y=row['strike'], color='red', linestyle='--', label=f"Strike {row['strike']} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
 
 # Add legend to the plot
@@ -92,8 +95,8 @@ ax.legend()
 st.pyplot(fig)
 
 # Output the top 3 strikes and their total open interest, gamma, calls, and puts
-st.subheader("Top 3 Strikes with the Most Open Interest:")
-for i, row in top_3_strikes.iterrows():
+st.subheader("Top 3 Strikes Closest to Current Price:")
+for i, row in closest_strikes.iterrows():
     total_gamma = row['calls_gamma'] + row['puts_gamma']
     st.write(f"**Strike:** {row['strike']}, **Calls OI:** {int(row['calls_openInterest'])}, **Puts OI:** {int(row['puts_openInterest'])}, "
              f"**Calls Gamma:** {row['calls_gamma']:.6f}, **Puts Gamma:** {row['puts_gamma']:.6f}, **Total Gamma:** {total_gamma:.6f}")
