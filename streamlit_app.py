@@ -109,6 +109,8 @@ display_data = display_data[['strike', 'total_open_interest', 'calls_percentage'
 
 # Display the DataFrame as a Streamlit table
 st.table(display_data.style.format({
+    'strike': "{:.1f}%",
+    'total_open_interest': "{:.1f}%",
     'calls_percentage': "{:.2f}%",
     'puts_percentage': "{:.2f}%",
     'Total Gamma': "{:.6f}"
