@@ -95,29 +95,21 @@ ax.legend()
 # Display plot in Streamlit
 st.pyplot(fig)
 
-# Output the top 5 strikes and their total open interest, gamma, calls, and puts
+# Output the top 5 strikes and their total open interest, gamma, calls, and puts as a table
 st.subheader("Top 5 Strikes with Highest Open Interest:")
 
-# Create a list to hold the formatted output
-top_strikes_output = []
+# Calculate percentages for calls and puts
+top_strikes['calls_percentage'] = (top_strikes['calls_openInterest'] / top_strikes['total_open_interest']) * 100
+top_strikes['puts_percentage'] = (top_strikes['puts_openInterest'] / top_strikes['total_open_interest']) * 100
 
-for i, row in top_strikes.iterrows():
-    total_open_interest = row['total_open_interest']
-    calls_oi = row['calls_openInterest']
-    puts_oi = row['puts_openInterest']
-    
-    # Calculate percentages
-    calls_percentage = (calls_oi / total_open_interest * 100) if total_open_interest > 0 else 0
-    puts_percentage = (puts_oi / total_open_interest * 100) if total_open_interest > 0 else 0
-    total_gamma = row['calls_gamma'] + row['puts_gamma']
-    
-    # Append to output list
-    top_strikes_output.append({
-        'Strike': row['strike'],
-        'Calls (%)': f"{calls_percentage:.2f}%",
-        'Puts (%)': f"{puts_percentage:.2f}%",
-        'Total Gamma': f"{total_gamma:.6f}"
-    })
+# Create a DataFrame for display
+display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'calls_gamma', 'puts_gamma']]
+display_data['Total Gamma'] = display_data['calls_gamma'] + display_data['puts_gamma']
+display_data = display_data[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'Total Gamma']]
 
-# Display the output as an array
-st.write(top_strikes_output)
+# Display the DataFrame as a Streamlit table
+st.table(display_data.style.format({
+    'calls_percentage': "{:.2f}%",
+    'puts_percentage': "{:.2f}%",
+    'Total Gamma': "{:.6f}"
+}))
