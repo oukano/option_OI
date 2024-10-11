@@ -97,7 +97,27 @@ st.pyplot(fig)
 
 # Output the top 5 strikes and their total open interest, gamma, calls, and puts
 st.subheader("Top 5 Strikes with Highest Open Interest:")
+
+# Create a list to hold the formatted output
+top_strikes_output = []
+
 for i, row in top_strikes.iterrows():
+    total_open_interest = row['total_open_interest']
+    calls_oi = row['calls_openInterest']
+    puts_oi = row['puts_openInterest']
+    
+    # Calculate percentages
+    calls_percentage = (calls_oi / total_open_interest * 100) if total_open_interest > 0 else 0
+    puts_percentage = (puts_oi / total_open_interest * 100) if total_open_interest > 0 else 0
     total_gamma = row['calls_gamma'] + row['puts_gamma']
-    st.write(f"**Strike:** {row['strike']}, **Calls OI:** {int(row['calls_openInterest'])}, **Puts OI:** {int(row['puts_openInterest'])}, "
-             f"**Calls Gamma:** {row['calls_gamma']:.6f}, **Puts Gamma:** {row['puts_gamma']:.6f}, **Total Gamma:** {total_gamma:.6f}")
+    
+    # Append to output list
+    top_strikes_output.append({
+        'Strike': row['strike'],
+        'Calls (%)': f"{calls_percentage:.2f}%",
+        'Puts (%)': f"{puts_percentage:.2f}%",
+        'Total Gamma': f"{total_gamma:.6f}"
+    })
+
+# Display the output as an array
+st.write(top_strikes_output)
