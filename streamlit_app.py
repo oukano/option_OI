@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
-import time
+from streamlit_autorefresh import st_autorefresh
 
 # Black-Scholes Gamma Calculation Function
 def calculate_gamma(S, K, T, r, sigma):
@@ -12,8 +12,8 @@ def calculate_gamma(S, K, T, r, sigma):
     gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
     return gamma
 
-# Refresh the data periodically
-refresh_interval = 60  # Refresh every 60 seconds
+# Automatically refresh the app every 60 seconds
+st_autorefresh(interval=60 * 1000)  # 60 seconds
 
 # Streamlit app
 st.title("Options Analysis Tool")
@@ -134,7 +134,3 @@ st.table(display_data.style.apply(highlight_closest_price, axis=1).format({
     'puts_percentage': "{:.2f}%",
     'Total Gamma': "{:.6f}"
 }))
-
-# Refresh the page after a set interval
-time.sleep(refresh_interval)
-st.experimental_rerun()
