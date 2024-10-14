@@ -28,8 +28,8 @@ ticker_options = {
 # Ticker selection
 selected_ticker = st.selectbox("Select a Ticker", list(ticker_options.keys()))
 
-# User input for number of top strikes to display
-num_strikes = st.number_input("Number of Top Strikes to Display", min_value=1, max_value=20, value=5)
+# Number of top strikes input
+num_strikes = st.number_input("Select Number of Top Strikes", min_value=1, max_value=10, value=5, step=1)
 
 # Fetch selected ticker's option chain
 ticker = selected_ticker
@@ -86,11 +86,11 @@ combined_oi = pd.merge(calls_oi, puts_oi, on='strike', how='outer').fillna(0)
 # Calculate total open interest
 combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combined_oi['puts_openInterest']
 
-# Find the top N strikes with the highest open interest based on user input
+# Find the top N strikes with the highest open interest (based on user input)
 top_strikes = combined_oi.nlargest(num_strikes, 'total_open_interest')
 
-# Fetch intraday data for today's 15-minute chart
-nvda_intraday = yf.download(ticker, period='1d', interval='15m')
+# Fetch intraday 15-minute stock price data for today
+nvda_intraday = nvda.history(period="1d", interval="15m")
 
 # Plotting intraday data
 fig, ax = plt.subplots(figsize=(12, 6))
@@ -100,6 +100,13 @@ ax.set_xlabel("Time")
 ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
 ax.yaxis.set_label_position("right")  # Move y-axis label to the right
+
+# Get the min and max from both stock price and top strike prices for dynamic y-axis
+min_price = min(nvda_intraday['Close'].min(), top_strikes['strike'].min())
+max_price = max(nvda_intraday['Close'].max(), top_strikes['strike'].max())
+
+# Set y-axis dynamically based on the stock price and strike price
+ax.set_ylim(min_price * 0.95, max_price * 1.05)  # adding 5% buffer
 
 # Mark the top strike prices on the chart and label them
 for i, row in top_strikes.iterrows():
@@ -113,7 +120,7 @@ ax.legend()
 # Display plot in Streamlit
 st.pyplot(fig)
 
-# Output the top N strikes and their total open interest, gamma, calls, and puts as a table
+# Output the top strikes and their total open interest, gamma, calls, and puts as a table
 st.subheader(f"Top {num_strikes} Strikes with Highest Open Interest:")
 
 # Calculate percentages for calls and puts
