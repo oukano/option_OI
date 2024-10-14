@@ -28,6 +28,9 @@ ticker_options = {
 # Ticker selection
 selected_ticker = st.selectbox("Select a Ticker", list(ticker_options.keys()))
 
+# User input for number of top strikes to display
+num_strikes = st.number_input("Number of Top Strikes to Display", min_value=1, max_value=20, value=5)
+
 # Fetch selected ticker's option chain
 ticker = selected_ticker
 st.subheader(f"Analyzing Options for {ticker_options[selected_ticker]} ({selected_ticker})")
@@ -83,8 +86,8 @@ combined_oi = pd.merge(calls_oi, puts_oi, on='strike', how='outer').fillna(0)
 # Calculate total open interest
 combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combined_oi['puts_openInterest']
 
-# Find the 5 strikes with the highest open interest
-top_strikes = combined_oi.nlargest(5, 'total_open_interest')
+# Find the top N strikes with the highest open interest based on user input
+top_strikes = combined_oi.nlargest(num_strikes, 'total_open_interest')
 
 # Fetch stock price data for the past 1 month and prepare for plotting
 nvda_price = nvda.history(period="1mo")
@@ -92,13 +95,13 @@ nvda_price = nvda.history(period="1mo")
 # Plotting
 fig, ax = plt.subplots(figsize=(12, 6))
 ax.plot(nvda_price.index, nvda_price['Close'], label=f"{ticker} Close Price", color="blue")
-ax.set_title(f'{ticker} Stock Price with Top 5 Open Interest Strikes (Expiry: {expiry_date})')
+ax.set_title(f'{ticker} Stock Price with Top {num_strikes} Open Interest Strikes (Expiry: {expiry_date})')
 ax.set_xlabel("Date")
 ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
 ax.yaxis.set_label_position("right")  # Move y-axis label to the right
 
-# Mark the top 5 strike prices on the chart and label them
+# Mark the top strike prices on the chart and label them
 for i, row in top_strikes.iterrows():
     strike_price = row['strike']
     ax.axhline(y=strike_price, color='red', linestyle='--', label=f"Strike {strike_price} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
@@ -110,8 +113,8 @@ ax.legend()
 # Display plot in Streamlit
 st.pyplot(fig)
 
-# Output the top 5 strikes and their total open interest, gamma, calls, and puts as a table
-st.subheader("Top 5 Strikes with Highest Open Interest:")
+# Output the top N strikes and their total open interest, gamma, calls, and puts as a table
+st.subheader(f"Top {num_strikes} Strikes with Highest Open Interest:")
 
 # Calculate percentages for calls and puts
 top_strikes['calls_percentage'] = (top_strikes['calls_openInterest'] / top_strikes['total_open_interest']) * 100
