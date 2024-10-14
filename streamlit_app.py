@@ -4,12 +4,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
+import time
 
 # Black-Scholes Gamma Calculation Function
 def calculate_gamma(S, K, T, r, sigma):
     d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
     return gamma
+
+# Refresh the data periodically
+refresh_interval = 60  # Refresh every 60 seconds
 
 # Streamlit app
 st.title("Options Analysis Tool")
@@ -19,7 +23,6 @@ ticker_options = {
     "NVDA": "NVIDIA",
     "QQQ": "Nasdaq",
     "SPY": "S&P"
-     # Added NVDA to the list for your original request
 }
 
 # Ticker selection
@@ -131,3 +134,7 @@ st.table(display_data.style.apply(highlight_closest_price, axis=1).format({
     'puts_percentage': "{:.2f}%",
     'Total Gamma': "{:.6f}"
 }))
+
+# Refresh the page after a set interval
+time.sleep(refresh_interval)
+st.experimental_rerun()
