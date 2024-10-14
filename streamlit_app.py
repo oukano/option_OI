@@ -89,14 +89,14 @@ combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combine
 # Find the top N strikes with the highest open interest based on user input
 top_strikes = combined_oi.nlargest(num_strikes, 'total_open_interest')
 
-# Fetch stock price data for the past 1 month and prepare for plotting
-nvda_price = nvda.history(period="1mo")
+# Fetch intraday data for today's 15-minute chart
+nvda_intraday = yf.download(ticker, period='1d', interval='15m')
 
-# Plotting
+# Plotting intraday data
 fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(nvda_price.index, nvda_price['Close'], label=f"{ticker} Close Price", color="blue")
-ax.set_title(f'{ticker} Stock Price with Top {num_strikes} Open Interest Strikes (Expiry: {expiry_date})')
-ax.set_xlabel("Date")
+ax.plot(nvda_intraday.index, nvda_intraday['Close'], label=f"{ticker} 15-min Interval Price", color="blue")
+ax.set_title(f'{ticker} Today’s 15-Minute Stock Price with Top {num_strikes} Open Interest Strikes')
+ax.set_xlabel("Time")
 ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
 ax.yaxis.set_label_position("right")  # Move y-axis label to the right
@@ -105,7 +105,7 @@ ax.yaxis.set_label_position("right")  # Move y-axis label to the right
 for i, row in top_strikes.iterrows():
     strike_price = row['strike']
     ax.axhline(y=strike_price, color='red', linestyle='--', label=f"Strike {strike_price} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
-    ax.text(nvda_price.index[-1], strike_price, f"{strike_price}", color='red', verticalalignment='bottom', fontsize=10)
+    ax.text(nvda_intraday.index[-1], strike_price, f"{strike_price}", color='red', verticalalignment='bottom', fontsize=10)
 
 # Add legend to the plot
 ax.legend()
