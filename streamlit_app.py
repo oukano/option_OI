@@ -40,15 +40,15 @@ num_strikes = st.number_input("Select Number of Top Strikes", min_value=1, max_v
 # Fetch selected ticker's option chain
 ticker = selected_ticker
 st.subheader(f"Analyzing Options for {ticker_options[selected_ticker]} ({selected_ticker})")
-nvda = yf.Ticker(ticker)
+stock_data = yf.Ticker(ticker)
 
 # Get current stock price
-current_price = nvda.history(period="1d")['Close'].iloc[0]
+current_price = stock_data.history(period="1d")['Close'].iloc[0]
 
 # Get today's date options (0DTE) by selecting the nearest expiry date
-options = nvda.options
+options = stock_data.options
 expiry_date = options[0]
-option_chain = nvda.option_chain(expiry_date)
+option_chain = stock_data.option_chain(expiry_date)
 
 # Get calls and puts
 calls = option_chain.calls
@@ -96,56 +96,65 @@ combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combine
 top_strikes = combined_oi.nlargest(num_strikes, 'total_open_interest')
 
 # Fetch intraday 15-minute stock price data for the last 7 days
-nvda_intraday = nvda.history(period="7d", interval="15m")
+intraday_data = stock_data.history(period="5d", interval="1h")
 
-# Plotting intraday data for one week
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(nvda_intraday.index, nvda_intraday['Close'], label=f"{ticker} 15-min Interval Price (1 Week)", color="blue")
-ax.set_title(f'{ticker} One Week’s 15-Minute Stock Price with Top {num_strikes} Open Interest Strikes')
-ax.set_xlabel("Time")
-ax.set_ylabel("Price")
-ax.yaxis.tick_right()  # Move y-axis ticks to the right
-ax.yaxis.set_label_position("right")  # Move y-axis label to the right
+# Ensure the data fetched is not empty
+if intraday_data.empty:
+    st.error("No intraday data available for this ticker.")
+else:
+    # Plotting intraday data for one week
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(intraday_data.index, intraday_data['Close'], label=f"{ticker} 15-min Interval Price (1 Week)", color="blue")
+    ax.set_title(f'{ticker} One Week’s 15-Minute Stock Price with Top {num_strikes} Open Interest Strikes')
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Price")
+    ax.yaxis.tick_right()  # Move y-axis ticks to the right
+    ax.yaxis.set_label_position("right")  # Move y-axis label to the right
 
-# Get the min and max from both stock price and top strike prices for dynamic y-axis
-min_price = min(nvda_intraday['Close'].min(), top_strikes['strike'].min())
-max_price = max(nvda_intraday['Close'].max(), top_strikes['strike'].max())
+    # Get the min and max from both stock price and top strike prices for dynamic y-axis
+    min_price = min(intraday_data['Close'].min(), top_strikes['strike'].min())
+    max_price = max(intraday_data['Close'].max(), top_strikes['strike'].max())
 
-# Set y-axis dynamically based on the stock price and strike price
-ax.set_ylim(min_price * 0.95, max_price * 1.05)  # adding 5% buffer
+    # Check for NaN or Inf values and ensure valid limits
+    if np.isnan(min_price) or np.isinf(min_price) or np.isnan(max_price) or np.isinf(max_price):
+        st.error("Error: Invalid price data. Unable to plot the chart.")
+    else:
+        # Set y-axis dynamically based on the stock price and strike price
+        ax.set_ylim(min_price * 0.95, max_price * 1.05)  # adding 5% buffer
 
-# Mark the top strike prices on the chart and label them
-for i, row in top_strikes.iterrows():
-    strike_price = row['strike']
-    ax.axhline(y=strike_price, color='red', linestyle='--', label=f"Strike {strike_price} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
-    ax.text(nvda_intraday.index[-1], strike_price, f"{strike_price}", color='red', verticalalignment='bottom', fontsize=10)
+        # Mark the top strike prices on the chart and label them
+        for i, row in top_strikes.iterrows():
+            strike_price = row['strike']
+            ax.axhline(y=strike_price, color='red', linestyle='--', label=f"Strike {strike_price} (OI: {int(row['calls_openInterest'] + row['puts_openInterest'])})")
+            ax.text(intraday_data.index[-1], strike_price, f"{strike_price}", color='red', verticalalignment='bottom', fontsize=10)
 
-# Add legend to the plot
-ax.legend()
+        # Add legend to the plot
+        ax.legend()
 
-# Display plot in Streamlit
-st.pyplot(fig)
+        # Display plot in Streamlit
+        st.pyplot(fig)
 
-# Output the top strikes and their total open interest, gamma, calls, and puts as a table
-st.subheader(f"Top {num_strikes} Strikes with Highest Open Interest:")
+    # Output the top strikes and their total open interest, gamma, calls, and puts as a table
+    st.subheader(f"Top {num_strikes} Strikes with Highest Open Interest:")
 
-# Calculate percentages for calls and puts
-top_strikes['calls_percentage'] = (top_strikes['calls_openInterest'] / top_strikes['total_open_interest']) * 100
-top_strikes['puts_percentage'] = (top_strikes['puts_openInterest'] / top_strikes['total_open_interest']) * 100
+    # Calculate percentages for calls and puts
+    top_strikes['calls_percentage'] = (top_strikes['calls_openInterest'] / top_strikes['total_open_interest']) * 100
+    top_strikes['puts_percentage'] = (top_strikes['puts_openInterest'] / top_strikes['total_open_interest']) * 100
 
-# Create a DataFrame for display
-display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'calls_gamma', 'puts_gamma']].copy()
-display_data['Total Gamma'] = display_data['calls_gamma'] + display_data['puts_gamma']
+    # Create a DataFrame for display
+    display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'calls_gamma', 'puts_gamma']]
+    display_data['Total Gamma'] = display_data['calls_gamma'] + display_data['puts_gamma']
+    display_data = display_data[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'Total Gamma']]
 
-# Highlight the row with the closest price to the current price
-def highlight_closest_price(row):
-    return ['background-color: yellow' if abs(row['strike'] - current_price) == abs(display_data['strike'] - current_price).min() else '' for _ in row]
+    # Highlight the row with the closest price to the current price
+    def highlight_closest_price(row):
+        return ['background-color: yellow' if abs(row['strike'] - current_price) == abs(display_data['strike'] - current_price).min() else '' for _ in row]
 
-# Display the DataFrame as a Streamlit table with highlighting
-st.table(display_data.style.apply(highlight_closest_price, axis=1).format({
-    'strike': "{:.1f}",
-    'total_open_interest': "{:.1f}",
-    'calls_percentage': "{:.2f}%",
-    'puts_percentage': "{:.2f}%",
-    'Total Gamma': "{:.6f}"
-}))
+    # Display the DataFrame as a Streamlit table with highlighting
+    st.table(display_data.style.apply(highlight_closest_price, axis=1).format({
+        'strike': "{:.1f}",
+        'total_open_interest': "{:.1f}",
+        'calls_percentage': "{:.2f}%",
+        'puts_percentage': "{:.2f}%",
+        'Total Gamma': "{:.6f}"
+    }))
