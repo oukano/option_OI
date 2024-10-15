@@ -6,11 +6,17 @@ import numpy as np
 from scipy.stats import norm
 from streamlit_autorefresh import st_autorefresh
 
-# Black-Scholes Gamma Calculation Function
+# Black-Scholes Gamma Calculation Function with error handling
 def calculate_gamma(S, K, T, r, sigma):
-    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
-    gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
-    return gamma
+    # Avoid division by zero or invalid values
+    if K == 0 or sigma == 0 or T == 0:
+        return 0  # Return zero gamma for invalid values
+    try:
+        d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+        gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
+        return gamma
+    except (ZeroDivisionError, ValueError):
+        return 0  # Handle any other edge cases like division by zero or math errors
 
 # Automatically refresh the app every 60 seconds
 st_autorefresh(interval=60 * 1000)  # 60 seconds
@@ -128,9 +134,8 @@ top_strikes['calls_percentage'] = (top_strikes['calls_openInterest'] / top_strik
 top_strikes['puts_percentage'] = (top_strikes['puts_openInterest'] / top_strikes['total_open_interest']) * 100
 
 # Create a DataFrame for display
-display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'calls_gamma', 'puts_gamma']]
+display_data = top_strikes[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'calls_gamma', 'puts_gamma']].copy()
 display_data['Total Gamma'] = display_data['calls_gamma'] + display_data['puts_gamma']
-display_data = display_data[['strike', 'total_open_interest', 'calls_percentage', 'puts_percentage', 'Total Gamma']]
 
 # Highlight the row with the closest price to the current price
 def highlight_closest_price(row):
