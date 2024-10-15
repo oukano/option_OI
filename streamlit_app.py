@@ -95,13 +95,13 @@ combined_oi['total_open_interest'] = combined_oi['calls_openInterest'] + combine
 # Find the top N strikes with the highest open interest (based on user input)
 top_strikes = combined_oi.nlargest(num_strikes, 'total_open_interest')
 
-# Fetch intraday 15-minute stock price data for today
-nvda_intraday = nvda.history(period="1d", interval="15m")
+# Fetch intraday 15-minute stock price data for the last 7 days
+nvda_intraday = nvda.history(period="7d", interval="15m")
 
-# Plotting intraday data
+# Plotting intraday data for one week
 fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(nvda_intraday.index, nvda_intraday['Close'], label=f"{ticker} 15-min Interval Price", color="blue")
-ax.set_title(f'{ticker} Today’s 15-Minute Stock Price with Top {num_strikes} Open Interest Strikes')
+ax.plot(nvda_intraday.index, nvda_intraday['Close'], label=f"{ticker} 15-min Interval Price (1 Week)", color="blue")
+ax.set_title(f'{ticker} One Week’s 15-Minute Stock Price with Top {num_strikes} Open Interest Strikes')
 ax.set_xlabel("Time")
 ax.set_ylabel("Price")
 ax.yaxis.tick_right()  # Move y-axis ticks to the right
